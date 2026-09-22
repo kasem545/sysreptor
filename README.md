@@ -53,6 +53,48 @@ SysReptor is a fully customizable pentest reporting platform designed for penetr
 * [Get involved](https://docs.sysreptor.com/get-involved/)
 * ⭐ Leave a star? 💚
 
+### Build the image
+
+```bash
+docker build -t syslifters/sysreptor:local .
+```
+
+The deploy stack references `syslifters/sysreptor:${SYSREPTOR_VERSION}`, so tagging your build as `syslifters/sysreptor:local`
+lets you use it by setting one variable, without changing the compose files.
+
+### Configure and start
+
+```bash
+cd deploy
+cp .env.example .env
+cp app.env.example app.env
+
+# Generate secrets
+python3 -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(48))" >> app.env
+KEY=$(head -c 32 /dev/urandom | base64)
+echo "ENCRYPTION_KEYS='[{\"id\": \"key-1\", \"key\": \"$KEY\", \"cipher\": \"AES-GCM\", \"revoked\": false}]'" >> app.env
+echo 'DEFAULT_ENCRYPTION_KEY_ID=key-1' >> app.env
+
+# Use your locally built image
+sed -i 's/^# SYSREPTOR_VERSION=.*/SYSREPTOR_VERSION=local/' .env
+
+docker compose up -d
+curl -f http://localhost:8000/api/public/utils/healthcheck/
+```
+
+By default the app listens on `127.0.0.1:8000`. Change `BIND_PORT` in `.env` to expose it on other addresses or ports,
+and see `app.env` for more settings (plugins, allowed hosts, etc.).
+
+### Create an admin user
+
+These are the login credentials for `http://localhost:8000` — there are no default credentials:
+
+```bash
+docker compose exec app python3 manage.py createorupdateuser --username admin --password <password> --superuser  # min. 15 characters
+```
+
+Forgot the password? Re-run the same command with a new password to reset it.
+
 <br>
 The FFG is the central national funding organization and strengthens Austria's innovative power.<br>
 This project is funded by the FFG.<a href="https://www.ffg.at" target="_blank">www.ffg.at</a>

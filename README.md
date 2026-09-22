@@ -3,7 +3,7 @@
     <a href="https://docs.sysreptor.com/"><img src="/docs/docs/public/assets/dino/banner.svg" width="100%" alt="SysReptor"></a>
 </h1>
 
-<h4 align="center">An easy and customizable pentest reporting platform designed to simplify pentest report creation for security professionals.</h4>
+<h4 align="center">An easy and customizable pentest reporting platform for security professionals.</h4>
 
 <div align="center">
     
@@ -36,6 +36,7 @@ SysReptor is a fully customizable pentest reporting platform designed for penetr
 🎨 Design your report in HTML.<br>
 ✍️ Write it in Markdown.<br>
 📄 Render to PDF.<br>
+🌍 Right-to-left languages (Arabic, Hebrew).<br>
 ☁️ Self-hosted or Cloud.<br>
 
 <h3 align="center">

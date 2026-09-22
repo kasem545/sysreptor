@@ -14,6 +14,10 @@
       <markdown-toolbar-button @click="codemirrorAction(insertCodeBlock)" title="Code Block" icon="mdi-code-block-tags" :disabled="props.disabled" :active="activeActions.code" />
       <markdown-toolbar-button @click="codemirrorAction(insertTable)" title="Table" icon="mdi-table" :disabled="props.disabled" :active="activeActions.table" />
       <span class="separator" />
+      <markdown-toolbar-button @click="codemirrorAction(setTextAlignmentLeft)" title="Align Left" icon="mdi-format-align-left" :disabled="props.disabled" :active="activeTextAlignment === 'left'" />
+      <markdown-toolbar-button @click="codemirrorAction(setTextAlignmentCenter)" title="Align Center" icon="mdi-format-align-center" :disabled="props.disabled" :active="activeTextAlignment === 'center'" />
+      <markdown-toolbar-button @click="codemirrorAction(setTextAlignmentRight)" title="Align Right" icon="mdi-format-align-right" :disabled="props.disabled" :active="activeTextAlignment === 'right'" />
+      <span class="separator" />
       <v-menu
         v-if="props.referenceItems"
         :disabled="props.disabled || props.referenceItems.length === 0"
@@ -134,6 +138,7 @@ import { levelNumberFromLevelName } from '@base/utils/cvss';
 import {
   type EditorState,
   type EditorView,
+  getActiveTextAlignment,
   insertCodeBlock,
   insertTable,
   insertText,
@@ -141,6 +146,7 @@ import {
   isTypeInSelection,
   redo,
   redoDepth,
+  setTextAlignment,
   toggleBlockQuote,
   toggleEmphasis,
   toggleFootnote,
@@ -195,6 +201,11 @@ const activeActions = computedCached(() => ({
 }));
 const canUndo = computed(() => editorState.value && undoDepth(editorState.value) > 0);
 const canRedo = computed(() => editorState.value && redoDepth(editorState.value) > 0);
+
+const activeTextAlignment = computed(() => getActiveTextAlignment(editorState.value));
+const setTextAlignmentLeft = (view: EditorView) => setTextAlignment(view, 'left');
+const setTextAlignmentCenter = (view: EditorView) => setTextAlignment(view, 'center');
+const setTextAlignmentRight = (view: EditorView) => setTextAlignment(view, 'right');
 
 const spellcheckSupported = computed(() => {
   if (!props.spellcheckSupported) {

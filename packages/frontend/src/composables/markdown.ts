@@ -3,11 +3,12 @@ import type { PropType } from "vue";
 import { 
   type ViewUpdate,
   createEditorExtensionToggler,
-  EditorState, EditorView,
+  Compartment, EditorState, EditorView,
   forceLinting, highlightTodos, tooltips, scrollPastEnd, closeBrackets, closeBracketsKeymap,
   drawSelection, rectangularSelection, crosshairCursor, dropCursor,
   history, historyKeymap, keymap, setDiagnostics, linter,
   spellcheck, spellcheckTheme,
+  textAlignmentDecorations,
   lineNumbers, indentUnit, defaultKeymap, indentWithTab, bracketMatching,
   markdown, json, jsonParseLinter, markdownHighlightStyle,
   Transaction,
@@ -27,6 +28,7 @@ import {
   type ChangeSpec,
 } from "@sysreptor/markdown/editor/index";
 import { uuidv4 } from "@base/utils/helpers";
+import { isRtlLanguage } from "~/utils/language";
 import { MarkdownEditorMode } from '#imports';
 import { formatHtmlToMarkdown, type renderMarkdownToHtml } from "@sysreptor/markdown";
 import { workerUrlPolicy } from "~/plugins/trustedtypes";
@@ -258,11 +260,24 @@ export function useMarkdownEditorBase(options: {
   const eventBusBeforeApplyRemoteTextChanges = useEventBus('collab:beforeApplyRemoteTextChanges');
   const eventBusBeforeApplySetValue = useEventBus('collab:beforeApplySetValue');
 
+  const editorDirectionCompartment = new Compartment();
+  function editorDirectionExtension(lang?: string | null) {
+    return EditorView.contentAttributes.of({ dir: isRtlLanguage(lang) ? 'rtl' : 'ltr' });
+  }
+  function applyEditorDirection() {
+    options.editorView.value?.dispatch({
+      effects: editorDirectionCompartment.reconfigure(editorDirectionExtension(options.props.value.lang)),
+    });
+  }
+
   function createEditorStateConfig() {
     return {
       doc: valueNotNull.value,
       extensions: [
         ...options.extensions,
+        // Detect text direction per line, to support mixed LTR/RTL content
+        EditorView.perLineTextDirection.of(true),
+        editorDirectionCompartment.of(editorDirectionExtension(options.props.value.lang)),
         history(),
         searchGlobalExtensions,
         keymap.of([
@@ -414,6 +429,7 @@ export function useMarkdownEditorBase(options: {
       editorActions.value.spellcheckBrowser!(spellcheckBrowserEnabled.value);
       editorActions.value.uploadFile!(fileUploadEnabled.value);
       editorActions.value.darkTheme!(theme.current.value.dark);
+      applyEditorDirection();
       
       options.editorView.value.dom.addEventListener('dragover', (event: DragEvent) => {
         // Allow dropping files
@@ -457,6 +473,7 @@ export function useMarkdownEditorBase(options: {
     editorActions.value.disabled?.(readonly);
   });
   watch(() => options.props.value.lang, () => {
+    applyEditorDirection();
     if (spellcheckLanguageToolEnabled.value && options.editorView.value) {
       forceLinting(options.editorView.value);
     }
@@ -593,6 +610,7 @@ export function useMarkdownEditorBase(options: {
   const markdownPreviewAttrs = computed(() => ({
     value: editorState.value?.doc.toString() ?? options.props.value.modelValue,
     readonly: options.props.value.disabled || options.props.value.readonly,
+    lang: options.props.value.lang,
     referenceItems: options.props.value.referenceItems,
     rewriteFileUrlMap: options.props.value.rewriteFileUrlMap,
     uploadFile: options.props.value.uploadFile,
@@ -669,6 +687,7 @@ export function markdownEditorDefaultExtensions() {
     closeBrackets(),
     markdown(),
     commentsExtension(),
+    textAlignmentDecorations,
     search({
       literal: true,
       createPanel: (view) => new CustomizedSearchPanel(view),
@@ -703,6 +722,7 @@ export function jsonEditorDefaultExtensions() {
 export function markdownEditorTextFieldExtensions() {
   return [
     highlightTodos,
+    textAlignmentDecorations,
     // Prevent newlines
     EditorState.transactionFilter.of((tr: any) => {
       const changesWithoutNewlines = [] as any[];
